@@ -5,9 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * Spring Boot application class.
- * 
- * @author Etnetera
  *
+ * @author Etnetera
  */
 @SpringBootApplication
 public class Application {
