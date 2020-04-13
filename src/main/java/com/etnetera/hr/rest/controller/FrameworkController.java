@@ -84,7 +84,7 @@ public class FrameworkController extends EntityRestController {
 
     @GetMapping("/{id}/frameworks")
     public Iterable<FrameworkDto> readByLanguage(@PathVariable Long id) {
-        ProgrammingLanguage language = languageService.findById(id);
+        ProgrammingLanguage language = languageService.getOne(id);
         Iterable<Framework> frameworks = frameworkService.findByLanguage(language);
         return assembler.writeDto(frameworks);
     }
@@ -93,7 +93,7 @@ public class FrameworkController extends EntityRestController {
     public Iterable<FrameworkDto> readByPage(@RequestParam(value = "page") int page,
                                              @RequestParam(value = "limit") int limit,
                                              @PathVariable Long id) {
-        ProgrammingLanguage language = languageService.findById(id);
+        ProgrammingLanguage language = languageService.getOne(id);
         Pageable pageable = PageRequest.of(page, limit);
         Page<Framework> result = frameworkService.findByLanguage(language, pageable);
         return assembler.writeDto(result);
@@ -112,7 +112,7 @@ public class FrameworkController extends EntityRestController {
 
     @GetMapping("/{id}/frameworks/count")
     public Integer countForFramework(@PathVariable Long id) {
-        ProgrammingLanguage language = languageService.findById(id);
+        ProgrammingLanguage language = languageService.getOne(id);
         return frameworkService.countByLanguage(language);
     }
 

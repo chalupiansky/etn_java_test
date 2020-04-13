@@ -74,7 +74,7 @@ public class FrameworkVersionController extends EntityRestController {
 
     @GetMapping("/{id}/versions")
     public Iterable<FrameworkVersionDto> readByFramework(@PathVariable Long id) {
-        Framework framework = frameworkService.findById(id);
+        Framework framework = frameworkService.getOne(id);
         Iterable<FrameworkVersion> frameworks = versionService.findByFramework(framework);
         return versionAssembler.writeDto(frameworks);
     }
@@ -83,7 +83,7 @@ public class FrameworkVersionController extends EntityRestController {
     public Iterable<FrameworkVersionDto> readByPage(@RequestParam("page") int page,
                                                     @RequestParam("limit") int limit,
                                                     @PathVariable Long id) {
-        Framework framework = frameworkService.findById(id);
+        Framework framework = frameworkService.getOne(id);
         Pageable pageable = PageRequest.of(page, limit);
         Page<FrameworkVersion> result = versionService.findByFramework(framework, pageable);
         return versionAssembler.writeDto(result);
@@ -102,7 +102,7 @@ public class FrameworkVersionController extends EntityRestController {
 
     @GetMapping("/{id}/versions/count")
     public Integer countForFramework(@PathVariable Long id) {
-        Framework framework = frameworkService.findById(id);
+        Framework framework = frameworkService.getOne(id);
         return versionService.countByFramework(framework);
     }
 
