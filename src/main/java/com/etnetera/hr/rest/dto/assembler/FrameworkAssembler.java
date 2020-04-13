@@ -1,7 +1,7 @@
 package com.etnetera.hr.rest.dto.assembler;
 
-import com.etnetera.hr.rest.dto.JavaScriptFrameworkDto;
-import com.etnetera.hr.data.entity.JavaScriptFramework;
+import com.etnetera.hr.rest.dto.FrameworkDto;
+import com.etnetera.hr.data.entity.Framework;
 import com.etnetera.hr.util.CollectionUtil;
 
 import org.springframework.context.annotation.Scope;
@@ -15,36 +15,37 @@ import org.springframework.web.context.WebApplicationContext;
  */
 @Component
 @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
-public class JavaScriptFrameworkAssembler {
+public class FrameworkAssembler {
 
-    public JavaScriptFramework readDto(JavaScriptFrameworkDto dto) {
-        JavaScriptFramework framework = new JavaScriptFramework();
+    public Framework readDto(FrameworkDto dto) {
+        Framework framework = new Framework();
         framework.setName(dto.getName());
         return framework;
     }
 
-    public Iterable<JavaScriptFramework> readDto(Iterable<JavaScriptFrameworkDto> dto) {
+    public Iterable<Framework> readDto(Iterable<FrameworkDto> dto) {
         return CollectionUtil.mapAll(dto, this::readDto);
     }
 
-    public JavaScriptFramework readDtoWithId(JavaScriptFrameworkDto dto) {
-        JavaScriptFramework framework = readDto(dto);
+    public Framework readDtoWithId(FrameworkDto dto) {
+        Framework framework = readDto(dto);
         framework.setId(dto.getId());
         return framework;
     }
 
-    public Iterable<JavaScriptFramework> readDtoWithId(Iterable<JavaScriptFrameworkDto> dto) {
+    public Iterable<Framework> readDtoWithId(Iterable<FrameworkDto> dto) {
         return CollectionUtil.mapAll(dto, this::readDtoWithId);
     }
 
-    public JavaScriptFrameworkDto writeDto(JavaScriptFramework framework) {
-        JavaScriptFrameworkDto dto = new JavaScriptFrameworkDto();
+    public FrameworkDto writeDto(Framework framework) {
+        FrameworkDto dto = new FrameworkDto();
         dto.setName(framework.getName());
+        dto.setLanguageId(framework.getLanguage().getId());
         dto.setId(framework.getId());
         return dto;
     }
 
-    public Iterable<JavaScriptFrameworkDto> writeDto(Iterable<JavaScriptFramework> versions) {
+    public Iterable<FrameworkDto> writeDto(Iterable<Framework> versions) {
         return CollectionUtil.mapAll(versions, this::writeDto);
     }
 }

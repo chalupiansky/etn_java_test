@@ -1,9 +1,10 @@
 package com.etnetera.hr.service;
 
-import com.etnetera.hr.data.entity.JavaScriptFramework;
-import com.etnetera.hr.data.repository.JavaScriptFrameworkRepository;
-import com.etnetera.hr.data.repository.JavaScriptFrameworkPagingRepository;
-import com.etnetera.hr.data.repository.JavaScriptFrameworkVersionRepository;
+import com.etnetera.hr.data.entity.Framework;
+import com.etnetera.hr.data.entity.ProgrammingLanguage;
+import com.etnetera.hr.data.repository.FrameworkRepository;
+import com.etnetera.hr.data.repository.FrameworkPagingRepository;
+import com.etnetera.hr.data.repository.FrameworkVersionRepository;
 import com.etnetera.hr.rest.exception.FrameworkNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,48 +18,57 @@ import javax.persistence.EntityNotFoundException;
  * Service used for accessing the data in database.
  */
 @Service
-public class JavaScriptFrameworkService {
+public class FrameworkService {
 
-    private final JavaScriptFrameworkRepository frameworkRepository;
-    private final JavaScriptFrameworkVersionRepository versionRepository;
-    private final JavaScriptFrameworkPagingRepository frameworkPagingRepository;
+    private final FrameworkRepository frameworkRepository;
+    private final FrameworkVersionRepository versionRepository;
+    private final FrameworkPagingRepository frameworkPagingRepository;
 
     @Autowired
-    public JavaScriptFrameworkService(JavaScriptFrameworkRepository frameworkRepository,
-                                      JavaScriptFrameworkVersionRepository versionRepository,
-                                      JavaScriptFrameworkPagingRepository frameworkPagingRepository) {
+    public FrameworkService(FrameworkRepository frameworkRepository,
+                            FrameworkVersionRepository versionRepository,
+                            FrameworkPagingRepository frameworkPagingRepository) {
         this.frameworkRepository = frameworkRepository;
         this.versionRepository = versionRepository;
         this.frameworkPagingRepository = frameworkPagingRepository;
     }
 
-    public JavaScriptFramework save(JavaScriptFramework framework) {
+    public Framework save(Framework framework) {
         return frameworkRepository.save(framework);
     }
 
-    public Iterable<JavaScriptFramework> saveAll(Iterable<JavaScriptFramework> frameworks) {
+    public Iterable<Framework> saveAll(Iterable<Framework> frameworks) {
         return frameworkRepository.saveAll(frameworks);
     }
 
-    public Iterable<JavaScriptFramework> findAll() {
+    public Iterable<Framework> findAll() {
         return frameworkRepository.findAll();
     }
 
-    public JavaScriptFramework findById(Long id) throws FrameworkNotFoundException {
+    public Framework findById(Long id) throws FrameworkNotFoundException {
         return frameworkRepository.findById(id)
                                   .orElseThrow(() -> new FrameworkNotFoundException(id));
     }
 
-    public Page<JavaScriptFramework> findPage(Pageable pageable) {
-        return frameworkPagingRepository.findAll(pageable);
+    public Iterable<Framework> findByLanguage(ProgrammingLanguage language) {
+        return frameworkRepository.findByLanguage(language);
     }
+
+    public Page<Framework> findByLanguage(ProgrammingLanguage language, Pageable pageable) {
+        return frameworkPagingRepository.findByLanguage(language, pageable);
+    }
+
 
     public int count() {
         return frameworkPagingRepository.countAllBy();
     }
 
-    public JavaScriptFramework getOne(Long id) throws FrameworkNotFoundException {
-        JavaScriptFramework one;
+    public int countByLanguage(ProgrammingLanguage language) {
+        return frameworkRepository.countAllByLanguage(language);
+    }
+
+    public Framework getOne(Long id) throws FrameworkNotFoundException {
+        Framework one;
         try {
             one = frameworkRepository.getOne(id);
             one.setId(id);
@@ -68,7 +78,7 @@ public class JavaScriptFrameworkService {
         return one;
     }
 
-    public void updateAll(Iterable<JavaScriptFramework> frameworks) throws FrameworkNotFoundException {
+    public void updateAll(Iterable<Framework> frameworks) throws FrameworkNotFoundException {
         throwNotFoundExIfNotPersisted(frameworks);
         saveAll(frameworks);
     }
@@ -79,12 +89,17 @@ public class JavaScriptFrameworkService {
         frameworkRepository.deleteById(id);
     }
 
+    public void deleteAllByLanguage(ProgrammingLanguage language) {
+        Iterable<Framework> frameworks = findByLanguage(language);
+        frameworks.forEach(f -> deleteById(f.getId()));
+    }
+
     public void deleteAll() {
         versionRepository.deleteAll();
         frameworkRepository.deleteAll();
     }
 
-    private void throwNotFoundExIfNotPersisted(Iterable<JavaScriptFramework> frameworks)
+    private void throwNotFoundExIfNotPersisted(Iterable<Framework> frameworks)
             throws FrameworkNotFoundException {
         frameworks.forEach(f -> this.throwNotFoundExIfNotPersisted(f.getId()));
     }

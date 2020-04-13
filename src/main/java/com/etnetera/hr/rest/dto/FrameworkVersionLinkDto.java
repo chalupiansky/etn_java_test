@@ -3,12 +3,12 @@ package com.etnetera.hr.rest.dto;
 /**
  * Simple Data Transfer Object. Represents JSON response to HTTP POST request
  */
-public class JavascriptFrameworkVersionLinkDto extends LinkDTO {
+public class FrameworkVersionLinkDto extends LinkDTO {
 
     private String versionName;
     private Long frameworkId;
 
-    public JavascriptFrameworkVersionLinkDto(String link) {
+    public FrameworkVersionLinkDto(String link) {
         super(link);
     }
 

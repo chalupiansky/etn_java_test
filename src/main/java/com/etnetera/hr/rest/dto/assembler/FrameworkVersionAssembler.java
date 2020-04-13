@@ -1,8 +1,8 @@
 package com.etnetera.hr.rest.dto.assembler;
 
-import com.etnetera.hr.data.entity.JavaScriptFramework;
-import com.etnetera.hr.rest.dto.JavaScriptFrameworkVersionDto;
-import com.etnetera.hr.data.entity.JavaScriptFrameworkVersion;
+import com.etnetera.hr.data.entity.Framework;
+import com.etnetera.hr.rest.dto.FrameworkVersionDto;
+import com.etnetera.hr.data.entity.FrameworkVersion;
 import com.etnetera.hr.util.CollectionUtil;
 
 import org.springframework.context.annotation.Scope;
@@ -15,10 +15,10 @@ import org.springframework.web.context.WebApplicationContext;
  */
 @Component
 @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
-public class JavaScriptFrameworkVersionAssembler {
+public class FrameworkVersionAssembler {
 
-    public JavaScriptFrameworkVersion readDto(JavaScriptFrameworkVersionDto dto) {
-        JavaScriptFrameworkVersion version = new JavaScriptFrameworkVersion();
+    public FrameworkVersion readDto(FrameworkVersionDto dto) {
+        FrameworkVersion version = new FrameworkVersion();
         version.setDeprecationDate(dto.getDeprecationDate());
         version.setHypeLevel(dto.getHypeLevel());
         version.setName(dto.getName());
@@ -26,29 +26,29 @@ public class JavaScriptFrameworkVersionAssembler {
         return version;
     }
 
-    public JavaScriptFrameworkVersion readDto(JavaScriptFrameworkVersionDto dto, JavaScriptFramework framework) {
-        JavaScriptFrameworkVersion version = readDto(dto);
+    public FrameworkVersion readDto(FrameworkVersionDto dto, Framework framework) {
+        FrameworkVersion version = readDto(dto);
         version.setFramework(framework);
         return version;
     }
 
-    public Iterable<JavaScriptFrameworkVersion> readDto(Iterable<JavaScriptFrameworkVersionDto> dto,
-                                                        JavaScriptFramework framework) {
+    public Iterable<FrameworkVersion> readDto(Iterable<FrameworkVersionDto> dto,
+                                              Framework framework) {
         return CollectionUtil.mapAll(dto, d -> readDto(d, framework));
     }
 
-    public JavaScriptFrameworkVersion readDtoWithId(JavaScriptFrameworkVersionDto dto) {
-        JavaScriptFrameworkVersion version = readDto(dto);
+    public FrameworkVersion readDtoWithId(FrameworkVersionDto dto) {
+        FrameworkVersion version = readDto(dto);
         version.setId(dto.getId());
         return version;
     }
 
-    public Iterable<JavaScriptFrameworkVersion> readDtoWithId(Iterable<JavaScriptFrameworkVersionDto> dto) {
+    public Iterable<FrameworkVersion> readDtoWithId(Iterable<FrameworkVersionDto> dto) {
         return CollectionUtil.mapAll(dto, this::readDtoWithId);
     }
 
-    public JavaScriptFrameworkVersionDto writeDto(JavaScriptFrameworkVersion version) {
-        JavaScriptFrameworkVersionDto dto = new JavaScriptFrameworkVersionDto();
+    public FrameworkVersionDto writeDto(FrameworkVersion version) {
+        FrameworkVersionDto dto = new FrameworkVersionDto();
         dto.setId(version.getId());
         dto.setName(version.getName());
         dto.setHypeLevel(version.getHypeLevel());
@@ -57,7 +57,7 @@ public class JavaScriptFrameworkVersionAssembler {
         return dto;
     }
 
-    public Iterable<JavaScriptFrameworkVersionDto> writeDto(Iterable<JavaScriptFrameworkVersion> versions) {
+    public Iterable<FrameworkVersionDto> writeDto(Iterable<FrameworkVersion> versions) {
         return CollectionUtil.mapAll(versions, this::writeDto);
     }
 }

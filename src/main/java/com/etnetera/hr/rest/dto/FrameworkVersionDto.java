@@ -1,6 +1,6 @@
 package com.etnetera.hr.rest.dto;
 
-import com.etnetera.hr.data.entity.JavaScriptFramework;
+import com.etnetera.hr.data.entity.Framework;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.validation.constraints.*;
@@ -9,7 +9,7 @@ import java.util.Date;
 /**
  * Simple Data Transfer Object. Represents JSON request/response.
  */
-public class JavaScriptFrameworkVersionDto {
+public class FrameworkVersionDto {
 
     public static final String NAME_EMPTY_MESSAGE = "Property 'name' can not be empty";
     public static final String NAME_MAX_LENGTH_MESSAGE = "Property 'name' cannot be longer than 30 characters";
@@ -31,7 +31,7 @@ public class JavaScriptFrameworkVersionDto {
     private Long frameworkId;
 
     @JsonIgnore
-    private JavaScriptFramework framework;
+    private Framework framework;
 
     public Long getId() {
         return id;
@@ -73,11 +73,11 @@ public class JavaScriptFrameworkVersionDto {
         this.frameworkId = frameworkId;
     }
 
-    public JavaScriptFramework getFramework() {
+    public Framework getFramework() {
         return framework;
     }
 
-    public void setFramework(JavaScriptFramework framework) {
+    public void setFramework(Framework framework) {
         this.framework = framework;
     }
 }

@@ -1,7 +1,8 @@
 package com.etnetera.hr.data.repository;
 
-import com.etnetera.hr.data.entity.JavaScriptFramework;
+import com.etnetera.hr.data.entity.Framework;
 
+import com.etnetera.hr.data.entity.ProgrammingLanguage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.PagingAndSortingRepository;
@@ -11,9 +12,11 @@ import org.springframework.data.repository.PagingAndSortingRepository;
  *
  * @author Etnetera
  */
-public interface JavaScriptFrameworkPagingRepository extends PagingAndSortingRepository<JavaScriptFramework, Long> {
+public interface FrameworkPagingRepository extends PagingAndSortingRepository<Framework, Long> {
 
-    Page<JavaScriptFramework> findAll(Pageable pageable);
+    Page<Framework> findByLanguage(ProgrammingLanguage language, Pageable pageable);
+
+    Page<Framework> findAll(Pageable pageable);
 
     int countAllBy();
 

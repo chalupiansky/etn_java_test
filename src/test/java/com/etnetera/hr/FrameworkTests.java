@@ -10,13 +10,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.etnetera.hr.data.entity.JavaScriptFrameworkVersion;
-import com.etnetera.hr.data.entity.JavaScriptFramework;
-import com.etnetera.hr.data.repository.JavaScriptFrameworkRepository;
-import com.etnetera.hr.data.repository.JavaScriptFrameworkVersionRepository;
+import com.etnetera.hr.data.entity.FrameworkVersion;
+import com.etnetera.hr.data.entity.Framework;
+import com.etnetera.hr.data.entity.ProgrammingLanguage;
+import com.etnetera.hr.data.repository.FrameworkRepository;
+import com.etnetera.hr.data.repository.FrameworkVersionRepository;
+import com.etnetera.hr.data.repository.ProgrammingLanguageRepository;
 import com.etnetera.hr.rest.controller.EtnRestController;
-import com.etnetera.hr.rest.controller.JavaScriptRestController;
-import com.etnetera.hr.rest.dto.JavaScriptFrameworkDto;
+import com.etnetera.hr.rest.controller.EntityRestController;
+import com.etnetera.hr.rest.dto.FrameworkDto;
 import com.etnetera.hr.rest.dto.container.InputContainer;
 import com.etnetera.hr.rest.exception.FrameworkNotFoundException;
 import com.etnetera.hr.util.CollectionUtil;
@@ -55,32 +57,37 @@ import java.util.List;
 @SpringBootTest
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class JavaScriptFrameworkTests {
+public class FrameworkTests {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private JavaScriptFrameworkRepository repository;
+    private FrameworkRepository frameworkRepository;
 
     @Autowired
-    private JavaScriptFrameworkVersionRepository versionRepository;
+    private FrameworkVersionRepository versionRepository;
+
+    @Autowired
+    private ProgrammingLanguageRepository languageRepository;
 
     @Test
     public void addValidFrameworkTest() throws Exception {
-        JavaScriptFrameworkDto frameworkDto = prepareDataForPostRequestTest().get(0);
-        mockMvc.perform(post("/frameworks/framework")
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+        FrameworkDto frameworkDto = prepareDataForPostRequestTest(languages.get(0)).get(0);
+        mockMvc.perform(post("/languages/" + languages.get(0).getId().intValue() + "/frameworks/framework")
                                 .content(mapToJson(frameworkDto))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isCreated())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
-               .andExpect(jsonPath("$.link", endsWith("/frameworks/1")));
+               .andExpect(jsonPath("$.link", endsWith("/frameworks/" + (1 + languages.size()))));
     }
 
     @Test
     public void addValidFrameworksTest() throws Exception {
-        List<JavaScriptFrameworkDto> frameworkDto = prepareDataForPostRequestTest();
-        ResultActions actions = mockMvc.perform(post("/frameworks")
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+        List<FrameworkDto> frameworkDto = prepareDataForPostRequestTest(languages.get(0));
+        ResultActions actions = mockMvc.perform(post("/languages/" + languages.get(0).getId().intValue() + "/frameworks")
                                                         .content(mapToJson(wrapData(frameworkDto)))
                                                         .contentType(MediaType.APPLICATION_JSON))
                                        .andExpect(status().isCreated())
@@ -88,15 +95,16 @@ public class JavaScriptFrameworkTests {
                                        .andExpect(jsonPath("$", hasSize(frameworkDto.size())));
         for (int i = 0; i < frameworkDto.size(); i++) {
             actions.andExpect(jsonPath("$[" + i + "].framework", is(frameworkDto.get(i).getName())))
-                   .andExpect(jsonPath("$[" + i + "].link", endsWith("/frameworks/" + (i + 1))));
+                   .andExpect(jsonPath("$[" + i + "].link", endsWith("/languages/frameworks/" + (i + 1 + languages.size()))));
         }
     }
 
     @Test
     public void addInvalidFrameworkViolatingUniqueName() throws Exception {
-        JavaScriptFrameworkDto frameworkDto = prepareDataForPostRequestTest().get(0);
-        List<JavaScriptFrameworkDto> frameworksWithSameName = Arrays.asList(frameworkDto, frameworkDto);
-        mockMvc.perform(post("/frameworks")
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+        FrameworkDto frameworkDto = prepareDataForPostRequestTest(languages.get(0)).get(0);
+        List<FrameworkDto> frameworksWithSameName = Arrays.asList(frameworkDto, frameworkDto);
+        mockMvc.perform(post("/languages/" + languages.get(0).getId().intValue() + "/frameworks")
                                 .content(mapToJson(wrapData(frameworksWithSameName)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isConflict())
@@ -105,47 +113,52 @@ public class JavaScriptFrameworkTests {
 
     @Test
     public void addInvalidFrameworkWithTooLongName() throws Exception {
-        JavaScriptFrameworkDto frameworkDto = new JavaScriptFrameworkDto();
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+        FrameworkDto frameworkDto = new FrameworkDto();
         frameworkDto.setName("verylongnameofthejavascriptframeworkjavaisthebest");
-        mockMvc.perform(post("/frameworks/framework")
+        mockMvc.perform(post("/languages/" + languages.get(0).getId().intValue() + "/frameworks/framework")
                                 .content(mapToJson(frameworkDto))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
                .andExpect(jsonPath("$.errors[0].message", is("Size")))
-               .andExpect(jsonPath("$.errors[0].details", is(JavaScriptFrameworkDto.NAME_MAX_LENGTH_MESSAGE)))
+               .andExpect(jsonPath("$.errors[0].details", is(FrameworkDto.NAME_MAX_LENGTH_MESSAGE)))
                .andExpect(jsonPath("$.errors[0].property", is("name")))
                .andExpect(jsonPath("$.errors[0].invalidValue", is("verylongnameofthejavascriptframeworkjavaisthebest")));
     }
 
     @Test
     public void addInvalidFrameworkWithoutName() throws Exception {
-        JavaScriptFrameworkDto frameworkDto = new JavaScriptFrameworkDto();
-        mockMvc.perform(post("/frameworks/framework")
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+        FrameworkDto frameworkDto = new FrameworkDto();
+        mockMvc.perform(post("/languages/" + languages.get(0).getId().intValue() + "/frameworks/framework")
                                 .content(mapToJson(frameworkDto))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
                .andExpect(jsonPath("$.errors[0].message", is("NotEmpty")))
-               .andExpect(jsonPath("$.errors[0].details", is(JavaScriptFrameworkDto.NAME_EMPTY_MESSAGE)))
+               .andExpect(jsonPath("$.errors[0].details", is(FrameworkDto.NAME_EMPTY_MESSAGE)))
                .andExpect(jsonPath("$.errors[0].property", is("name")))
                .andExpect(jsonPath("$.errors[0].invalidValue").value(IsNull.nullValue()));
     }
 
     @Test
     public void addInvalidFrameworksWithoutRequestBody() throws Exception {
-        mockMvc.perform(post("/frameworks"))
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+        mockMvc.perform(post("/languages/" + languages.get(0).getId().intValue() + "/frameworks"))
                .andExpect(status().isBadRequest());
     }
 
     @Test
     public void addInvalidFrameworkWithoutRequestBody() throws Exception {
-        mockMvc.perform(post("/frameworks/framework"))
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+        mockMvc.perform(post("/languages/" + languages.get(0).getId().intValue() + "/frameworks/framework"))
                .andExpect(status().isBadRequest());
     }
 
     @Test
     public void addInvalidFrameworkWithEmptyRequestBody() throws Exception {
-        List<JavaScriptFrameworkDto> emptyList = new ArrayList<>();
-        mockMvc.perform(post("/frameworks")
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+        List<FrameworkDto> emptyList = new ArrayList<>();
+        mockMvc.perform(post("/languages/" + languages.get(0).getId().intValue() + "/frameworks")
                                 .content(mapToJson(wrapData(emptyList)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
@@ -158,8 +171,8 @@ public class JavaScriptFrameworkTests {
 
     @Test
     public void getAllFrameworks() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareData();
-        ResultActions actions = mockMvc.perform(get("/frameworks"))
+        List<Framework> frameworks = prepareData();
+        ResultActions actions = mockMvc.perform(get("/languages/frameworks"))
                                        .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                        .andExpect(jsonPath("$", hasSize(frameworks.size())));
         for (int i = 0; i < frameworks.size(); i++) {
@@ -169,11 +182,25 @@ public class JavaScriptFrameworkTests {
     }
 
     @Test
+    public void getAllFrameworksByLanguage() throws Exception {
+        prepareData();
+        Long languageId = 1L;
+        List<Framework> languageFrameworks = CollectionUtil.mapToList(frameworkRepository.findByLanguage_Id(languageId));
+        ResultActions actions = mockMvc.perform(get("/languages/" + languageId + "/frameworks"))
+                                       .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                                       .andExpect(jsonPath("$", hasSize(languageFrameworks.size())));
+        for (int i = 0; i < languageFrameworks.size(); i++) {
+            actions.andExpect(jsonPath("$[" + i + "].id", is(languageFrameworks.get(i).getId().intValue())))
+                   .andExpect(jsonPath("$[" + i + "].name", is(languageFrameworks.get(i).getName())));
+        }
+    }
+
+    @Test
     public void getExistingFramework() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareData();
-        JavaScriptFramework framework = frameworks.get(0);
+        List<Framework> frameworks = prepareData();
+        Framework framework = frameworks.get(0);
         int existingId = framework.getId().intValue();
-        mockMvc.perform(get("/frameworks/" + existingId))
+        mockMvc.perform(get("/languages/frameworks/" + existingId))
                .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                .andExpect(jsonPath("id", is(existingId)))
                .andExpect(jsonPath("name", is(framework.getName())));
@@ -181,21 +208,23 @@ public class JavaScriptFrameworkTests {
 
     @Test
     public void getNonExistentFramework() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareData();
-        int nonExistentId = frameworks.size() + 1;
-        mockMvc.perform(get("/frameworks/" + nonExistentId))
+        List<Framework> frameworks = prepareData();
+        int nonExistentId = frameworks.size() + 100;
+        mockMvc.perform(get("/languages/frameworks/" + nonExistentId))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message", is(JavaScriptRestController.NO_SUCH_ENTITY_MESSAGE)))
+               .andExpect(jsonPath("$.message", is(EntityRestController.NO_SUCH_ENTITY_MESSAGE)))
                .andExpect(jsonPath("$.details", is(FrameworkNotFoundException.MESSAGE + nonExistentId)));
     }
 
     @Test
     public void getFrameworksByPageAndLimitParams() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareData();
-        List<JavaScriptFramework> firstPageData = frameworks.subList(0, 2);
-        List<JavaScriptFramework> secondPageData = frameworks.subList(2, 4);
+        prepareData();
+        Long languageId = 1L;
+        List<Framework> languageFrameworks = CollectionUtil.mapToList(frameworkRepository.findByLanguage_Id(languageId));
+        List<Framework> firstPageData = languageFrameworks.subList(0, 2);
+        List<Framework> secondPageData = languageFrameworks.subList(2, 4);
 
-        ResultActions actions1 = mockMvc.perform(get("/frameworks?page=0&limit=2"))
+        ResultActions actions1 = mockMvc.perform(get("/languages/1/frameworks?page=0&limit=2"))
                                         .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                         .andExpect(jsonPath("$", hasSize(firstPageData.size())));
         for (int i = 0; i < firstPageData.size(); i++) {
@@ -203,7 +232,7 @@ public class JavaScriptFrameworkTests {
                     .andExpect(jsonPath("$[" + i + "].name", is(firstPageData.get(i).getName())));
         }
 
-        ResultActions actions2 = mockMvc.perform(get("/frameworks?page=1&limit=2"))
+        ResultActions actions2 = mockMvc.perform(get("/languages/1/frameworks?page=1&limit=2"))
                                         .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                         .andExpect(jsonPath("$", hasSize(secondPageData.size())));
         for (int i = 0; i < secondPageData.size(); i++) {
@@ -214,8 +243,9 @@ public class JavaScriptFrameworkTests {
 
     @Test
     public void getFrameworksByWrongPageParam() throws Exception {
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
         int wrongPageParam = -1;
-        mockMvc.perform(get("/frameworks?page=" + wrongPageParam + "&limit=2"))
+        mockMvc.perform(get("/languages/" + languages.get(0).getId().intValue() + "/frameworks?page=" + wrongPageParam + "&limit=2"))
                .andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                .andExpect(jsonPath("$.message", is(EtnRestController.ILLEGAL_ARGUMENT_MESSAGE)))
                .andExpect(jsonPath("$.details", is("Page index must not be less than zero!")));
@@ -223,31 +253,44 @@ public class JavaScriptFrameworkTests {
 
     @Test
     public void getFrameworkCount() throws Exception {
-        MvcResult resultBeforePersist = mockMvc.perform(get("/frameworks/count"))
+        MvcResult resultBeforePersist = mockMvc.perform(get("/languages/frameworks/count"))
                                                .andExpect(status().isOk())
                                                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                                .andReturn();
         Assert.assertEquals(String.valueOf(0), resultBeforePersist.getResponse().getContentAsString());
 
-        List<JavaScriptFramework> frameworks = prepareData();
-        MvcResult resultAfterPersist = mockMvc.perform(get("/frameworks/count"))
+        List<Framework> frameworks = prepareData();
+        MvcResult resultAfterPersist = mockMvc.perform(get("/languages/frameworks/count"))
                                               .andExpect(status().isOk())
                                               .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                               .andReturn();
         Assert.assertEquals(String.valueOf(frameworks.size()), resultAfterPersist.getResponse().getContentAsString());
     }
 
+
+    @Test
+    public void getFrameworkCountByLanguage() throws Exception {
+        prepareData();
+        Long languageId = 1L;
+        List<Framework> languageFrameworks = CollectionUtil.mapToList(frameworkRepository.findByLanguage_Id(languageId));
+        MvcResult resultAfterPersist = mockMvc.perform(get("/languages/" + languageId.intValue() + "/frameworks/count"))
+                                              .andExpect(status().isOk())
+                                              .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                                              .andReturn();
+        Assert.assertEquals(String.valueOf(languageFrameworks.size()), resultAfterPersist.getResponse().getContentAsString());
+    }
+
     @Test
     public void updateFramework() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareData();
+        List<Framework> frameworks = prepareData();
         frameworks.forEach(f -> f.setName("x" + f.getName()));
 
-        mockMvc.perform(put("/frameworks")
+        mockMvc.perform(put("/languages/frameworks")
                                 .content(mapToJson(wrapData(frameworks)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isOk());
 
-        List<JavaScriptFramework> frameworksFromDB = CollectionUtil.mapToList(repository.findAll());
+        List<Framework> frameworksFromDB = CollectionUtil.mapToList(frameworkRepository.findAll());
 
         for (int i = 0; i < frameworksFromDB.size(); i++) {
             Assert.assertEquals(frameworks.get(i).getName(), frameworksFromDB.get(i).getName());
@@ -256,10 +299,10 @@ public class JavaScriptFrameworkTests {
 
     @Test
     public void updateFrameworkWithoutId() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareData();
+        List<Framework> frameworks = prepareData();
         frameworks.get(0).setId(null);
 
-        mockMvc.perform(put("/frameworks")
+        mockMvc.perform(put("/languages/frameworks")
                                 .content(mapToJson(wrapData(frameworks)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
@@ -269,44 +312,45 @@ public class JavaScriptFrameworkTests {
 
     @Test
     public void updateOfNonExistentFramework() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareData();
+        List<Framework> frameworks = prepareData();
         long nonExistentId = 100;
         frameworks.get(0).setId(nonExistentId);
 
-        mockMvc.perform(put("/frameworks")
+        mockMvc.perform(put("/languages/frameworks")
                                 .content(mapToJson(wrapData(frameworks)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message", is(JavaScriptRestController.NO_SUCH_ENTITY_MESSAGE)))
+               .andExpect(jsonPath("$.message", is(EntityRestController.NO_SUCH_ENTITY_MESSAGE)))
                .andExpect(jsonPath("$.details", is(FrameworkNotFoundException.MESSAGE + nonExistentId)));
     }
 
     @Test
     public void updateFrameworkWithInvalidContent() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareData();
+        List<Framework> frameworks = prepareData();
         String invalidName = "verylongnameofthejavascriptframeworkjavaisthebest";
         frameworks.get(0).setName(invalidName);
-        mockMvc.perform(put("/frameworks")
+        mockMvc.perform(put("/languages/frameworks")
                                 .content(mapToJson(wrapData(frameworks)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
                .andExpect(jsonPath("$.errors[0].message", is("Size")))
-               .andExpect(jsonPath("$.errors[0].details", is(JavaScriptFrameworkDto.NAME_MAX_LENGTH_MESSAGE)))
+               .andExpect(jsonPath("$.errors[0].details", is(FrameworkDto.NAME_MAX_LENGTH_MESSAGE)))
                .andExpect(jsonPath("$.errors[0].property", is("inputs[0].name")))
                .andExpect(jsonPath("$.errors[0].invalidValue", is(invalidName)));
     }
 
     @Test
     public void updateFrameworksWithoutRequestBody() throws Exception {
-        mockMvc.perform(put("/frameworks")
+        mockMvc.perform(put("/languages/frameworks")
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest());
     }
 
     @Test
     public void updateFrameworksWithEmptyRequestBody() throws Exception {
-        List<JavaScriptFrameworkDto> emptyList = new ArrayList<>();
-        mockMvc.perform(post("/frameworks")
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+        List<FrameworkDto> emptyList = new ArrayList<>();
+        mockMvc.perform(post("/languages/" + languages.get(0).getId().intValue() + "/frameworks")
                                 .content(mapToJson(wrapData(emptyList)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
@@ -319,14 +363,14 @@ public class JavaScriptFrameworkTests {
 
     @Test
     public void deleteFrameworkById() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareData();
+        List<Framework> frameworks = prepareData();
         Long id = frameworks.get(0).getId();
-        mockMvc.perform(delete("/frameworks/" + id))
+        mockMvc.perform(delete("/languages/frameworks/" + id))
                .andExpect(status().isOk());
-        List<JavaScriptFramework> updatedFrameworks = CollectionUtil.mapToList(repository.findAll());
+        List<Framework> updatedFrameworks = CollectionUtil.mapToList(frameworkRepository.findAll());
         boolean frameworkFound = updatedFrameworks.stream().anyMatch(f -> f.getId().equals(id));
 
-        List<JavaScriptFrameworkVersion> updatedVersions = CollectionUtil.mapToList(versionRepository.findByFramework(frameworks.get(0)));
+        List<FrameworkVersion> updatedVersions = CollectionUtil.mapToList(versionRepository.findByFramework(frameworks.get(0)));
         boolean emptyVersions = updatedVersions.isEmpty();
 
         Assert.assertFalse(frameworkFound);
@@ -336,23 +380,41 @@ public class JavaScriptFrameworkTests {
     @Test
     public void deleteNonExistentFramework() throws Exception {
         int nonExistentId = 100;
-        mockMvc.perform(delete("/frameworks/" + nonExistentId))
+        mockMvc.perform(delete("/languages/frameworks/" + nonExistentId))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message", is(JavaScriptRestController.NO_SUCH_ENTITY_MESSAGE)))
+               .andExpect(jsonPath("$.message", is(EntityRestController.NO_SUCH_ENTITY_MESSAGE)))
                .andExpect(jsonPath("$.details", is(FrameworkNotFoundException.MESSAGE + nonExistentId)));
+    }
+
+    @Test
+    public void deleteAllByLanguage() throws Exception {
+        prepareData();
+        Long languageId = 1L;
+        List<Framework> languageFrameworks = CollectionUtil.mapToList(frameworkRepository.findByLanguage_Id(languageId));
+
+        mockMvc.perform(delete("/languages/" + languageId.intValue() + "/frameworks"))
+               .andExpect(status().isOk());
+
+        List<Framework> updatedFrameworks = CollectionUtil.mapToList(frameworkRepository.findByLanguage_Id(languageId));
+        Assert.assertTrue(updatedFrameworks.isEmpty());
+
+        languageFrameworks.forEach(f -> {
+            List<FrameworkVersion> versions = CollectionUtil.mapToList(versionRepository.findByFramework(f));
+            Assert.assertTrue(versions.isEmpty());
+        });
     }
 
     @Test
     public void deleteAllFrameworks() throws Exception {
         prepareData();
-        mockMvc.perform(delete("/frameworks"))
+        mockMvc.perform(delete("/languages/frameworks"))
                .andExpect(status().isOk());
 
-        List<JavaScriptFramework> updatedFrameworks = CollectionUtil.mapToList(repository.findAll());
+        List<Framework> updatedFrameworks = CollectionUtil.mapToList(frameworkRepository.findAll());
         boolean emptyFrameworks = updatedFrameworks.isEmpty();
 
 
-        List<JavaScriptFrameworkVersion> updatedVersions = CollectionUtil.mapToList(versionRepository.findAll());
+        List<FrameworkVersion> updatedVersions = CollectionUtil.mapToList(versionRepository.findAll());
         boolean emptyVersions = updatedVersions.isEmpty();
 
         Assert.assertTrue(emptyFrameworks);
@@ -360,44 +422,74 @@ public class JavaScriptFrameworkTests {
 
     }
 
-    private List<JavaScriptFramework> prepareData() {
-        List<JavaScriptFramework> frameworks = new ArrayList<>();
-        JavaScriptFramework react = new JavaScriptFramework();
+    private List<ProgrammingLanguage> prepareProgrammingLanguages() {
+        List<ProgrammingLanguage> languages = new ArrayList<>();
+
+        ProgrammingLanguage javascript = new ProgrammingLanguage();
+        javascript.setName("JavaScript");
+
+        ProgrammingLanguage java = new ProgrammingLanguage();
+        java.setName("Java");
+
+        languages.add(javascript);
+        languages.add(java);
+
+        languageRepository.saveAll(languages);
+
+        return languages;
+    }
+
+    private List<Framework> prepareData() {
+        List<ProgrammingLanguage> languages = prepareProgrammingLanguages();
+
+        List<Framework> frameworks = new ArrayList<>();
+        Framework react = new Framework();
         react.setName("React");
-        JavaScriptFramework vue = new JavaScriptFramework();
+        react.setLanguage(languages.get(0));
+
+        Framework vue = new Framework();
         vue.setName("Vue.js");
-        JavaScriptFramework angular = new JavaScriptFramework();
+        vue.setLanguage(languages.get(0));
+
+        Framework angular = new Framework();
         angular.setName("Angular");
-        JavaScriptFramework node = new JavaScriptFramework();
+        angular.setLanguage(languages.get(0));
+
+        Framework node = new Framework();
         node.setName("Node.js");
-        JavaScriptFramework backbone = new JavaScriptFramework();
-        backbone.setName("Backbone.js");
+        node.setLanguage(languages.get(0));
+
+        Framework spring = new Framework();
+        spring.setName("Spring");
+        spring.setLanguage(languages.get(1));
+
         frameworks.add(react);
         frameworks.add(vue);
         frameworks.add(angular);
         frameworks.add(node);
-        frameworks.add(backbone);
+        frameworks.add(spring);
 
-        repository.saveAll(frameworks);
+        frameworkRepository.saveAll(frameworks);
         prepareFrameworksVersions(frameworks);
 
         return frameworks;
     }
 
-    private void prepareFrameworksVersions(List<JavaScriptFramework> frameworks) {
-        JavaScriptFrameworkVersion version1 = new JavaScriptFrameworkVersion();
+    private void prepareFrameworksVersions(List<Framework> frameworks) {
+
+        FrameworkVersion version1 = new FrameworkVersion();
         version1.setDeprecationDate(new Date());
         version1.setHypeLevel(75);
         version1.setName("1.1");
         version1.setFramework(frameworks.get(0));
 
-        JavaScriptFrameworkVersion version2 = new JavaScriptFrameworkVersion();
+        FrameworkVersion version2 = new FrameworkVersion();
         version2.setDeprecationDate(new Date());
         version2.setHypeLevel(64);
         version2.setName("1.2");
         version2.setFramework(frameworks.get(1));
 
-        JavaScriptFrameworkVersion version3 = new JavaScriptFrameworkVersion();
+        FrameworkVersion version3 = new FrameworkVersion();
         version3.setDeprecationDate(new Date());
         version3.setHypeLevel(17);
         version3.setName("1.3");
@@ -408,14 +500,17 @@ public class JavaScriptFrameworkTests {
         versionRepository.save(version3);
     }
 
-    private List<JavaScriptFrameworkDto> prepareDataForPostRequestTest() {
-        List<JavaScriptFrameworkDto> testData = new ArrayList<>();
-        JavaScriptFrameworkDto dto1 = new JavaScriptFrameworkDto();
+    private List<FrameworkDto> prepareDataForPostRequestTest(ProgrammingLanguage language) {
+        List<FrameworkDto> testData = new ArrayList<>();
+        FrameworkDto dto1 = new FrameworkDto();
         dto1.setName("Angular");
-        JavaScriptFrameworkDto dto2 = new JavaScriptFrameworkDto();
-        dto2.setName("Vue.JS");
-        JavaScriptFrameworkDto dto3 = new JavaScriptFrameworkDto();
+        dto1.setLanguageId(language.getId());
+        FrameworkDto dto2 = new FrameworkDto();
+        dto2.setName("Vue.Js");
+        dto2.setLanguageId(language.getId());
+        FrameworkDto dto3 = new FrameworkDto();
         dto3.setName("React");
+        dto3.setLanguageId(language.getId());
         testData.add(dto1);
         testData.add(dto2);
         testData.add(dto3);

@@ -1,7 +1,7 @@
 package com.etnetera.hr.rest.dto.assembler;
 
-import com.etnetera.hr.rest.dto.JavascriptFrameworkVersionLinkDto;
-import com.etnetera.hr.data.entity.JavaScriptFrameworkVersion;
+import com.etnetera.hr.rest.dto.FrameworkVersionLinkDto;
+import com.etnetera.hr.data.entity.FrameworkVersion;
 import com.etnetera.hr.rest.dto.LinkDTO;
 import com.etnetera.hr.util.CollectionUtil;
 
@@ -16,23 +16,23 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  */
 @Component
 @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
-public class JavaScriptFrameworkVersionLinkAssembler {
+public class FrameworkVersionLinkAssembler {
 
     private String resourcesURL = ServletUriComponentsBuilder.fromCurrentContextPath()
-                                                             .replacePath("/frameworks/versions/")
+                                                             .replacePath("/languages/frameworks/versions/")
                                                              .toUriString();
 
-    public LinkDTO writeSimpleLinkDto(JavaScriptFrameworkVersion version) {
+    public LinkDTO writeSimpleLinkDto(FrameworkVersion version) {
         return new LinkDTO(resourcesURL + version.getId());
     }
 
-    public Iterable<JavascriptFrameworkVersionLinkDto> writeDto(Iterable<JavaScriptFrameworkVersion> versions) {
+    public Iterable<FrameworkVersionLinkDto> writeDto(Iterable<FrameworkVersion> versions) {
         return CollectionUtil.mapAll(versions, this::writeDto);
     }
 
-    public JavascriptFrameworkVersionLinkDto writeDto(JavaScriptFrameworkVersion version) {
+    public FrameworkVersionLinkDto writeDto(FrameworkVersion version) {
         String link = resourcesURL + version.getId();
-        JavascriptFrameworkVersionLinkDto dto = new JavascriptFrameworkVersionLinkDto(link);
+        FrameworkVersionLinkDto dto = new FrameworkVersionLinkDto(link);
         dto.setFrameworkId(version.getFramework().getId());
         dto.setVersionName(version.getName());
         return dto;

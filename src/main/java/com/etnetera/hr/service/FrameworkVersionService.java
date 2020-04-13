@@ -1,9 +1,9 @@
 package com.etnetera.hr.service;
 
-import com.etnetera.hr.data.entity.JavaScriptFramework;
-import com.etnetera.hr.data.entity.JavaScriptFrameworkVersion;
-import com.etnetera.hr.data.repository.JavaScriptFrameworkVersionRepository;
-import com.etnetera.hr.data.repository.JavaScriptFrameworkVersionPagingRepository;
+import com.etnetera.hr.data.entity.Framework;
+import com.etnetera.hr.data.entity.FrameworkVersion;
+import com.etnetera.hr.data.repository.FrameworkVersionRepository;
+import com.etnetera.hr.data.repository.FrameworkVersionPagingRepository;
 import com.etnetera.hr.rest.exception.FrameworkVersionNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,40 +17,40 @@ import javax.persistence.EntityNotFoundException;
  * Service used for accessing the data in database.
  */
 @Service
-public class JavaScriptFrameworkVersionService {
+public class FrameworkVersionService {
 
-    private final JavaScriptFrameworkVersionRepository versionRepository;
-    private final JavaScriptFrameworkVersionPagingRepository versionPagingRepository;
+    private final FrameworkVersionRepository versionRepository;
+    private final FrameworkVersionPagingRepository versionPagingRepository;
 
     @Autowired
-    public JavaScriptFrameworkVersionService(JavaScriptFrameworkVersionRepository versionRepository,
-                                             JavaScriptFrameworkVersionPagingRepository versionPagingRepository) {
+    public FrameworkVersionService(FrameworkVersionRepository versionRepository,
+                                   FrameworkVersionPagingRepository versionPagingRepository) {
         this.versionRepository = versionRepository;
         this.versionPagingRepository = versionPagingRepository;
     }
 
-    public JavaScriptFrameworkVersion save(JavaScriptFrameworkVersion version) {
+    public FrameworkVersion save(FrameworkVersion version) {
         return versionRepository.save(version);
     }
 
-    public Iterable<JavaScriptFrameworkVersion> saveAll(Iterable<JavaScriptFrameworkVersion> versions) {
+    public Iterable<FrameworkVersion> saveAll(Iterable<FrameworkVersion> versions) {
         return versionRepository.saveAll(versions);
     }
 
-    public Iterable<JavaScriptFrameworkVersion> findAll() {
+    public Iterable<FrameworkVersion> findAll() {
         return versionRepository.findAll();
     }
 
-    public JavaScriptFrameworkVersion findById(Long id) throws FrameworkVersionNotFoundException {
+    public FrameworkVersion findById(Long id) throws FrameworkVersionNotFoundException {
         return versionRepository.findById(id)
                                 .orElseThrow(() -> new FrameworkVersionNotFoundException(id));
     }
 
-    public Iterable<JavaScriptFrameworkVersion> findByFramework(JavaScriptFramework framework) {
+    public Iterable<FrameworkVersion> findByFramework(Framework framework) {
         return versionRepository.findByFramework(framework);
     }
 
-    public Page<JavaScriptFrameworkVersion> findByFramework(JavaScriptFramework framework, Pageable pageable) {
+    public Page<FrameworkVersion> findByFramework(Framework framework, Pageable pageable) {
         return versionPagingRepository.findByFramework(framework, pageable);
     }
 
@@ -58,11 +58,11 @@ public class JavaScriptFrameworkVersionService {
         return versionRepository.countAllBy();
     }
 
-    public int countByFramework(JavaScriptFramework framework) {
+    public int countByFramework(Framework framework) {
         return versionRepository.countAllByFramework(framework);
     }
 
-    public void updateAll(Iterable<JavaScriptFrameworkVersion> versions) throws FrameworkVersionNotFoundException {
+    public void updateAll(Iterable<FrameworkVersion> versions) throws FrameworkVersionNotFoundException {
         throwNotFoundExIfNotPersisted(versions);
         saveAll(versions);
     }
@@ -72,7 +72,7 @@ public class JavaScriptFrameworkVersionService {
         versionRepository.deleteById(id);
     }
 
-    public void deleteAllByFramework(JavaScriptFramework framework) {
+    public void deleteAllByFramework(Framework framework) {
         versionRepository.deleteAllByFramework(framework);
     }
 
@@ -80,14 +80,14 @@ public class JavaScriptFrameworkVersionService {
         versionRepository.deleteAll();
     }
 
-    private void throwNotFoundExIfNotPersisted(Iterable<JavaScriptFrameworkVersion> versions)
+    private void throwNotFoundExIfNotPersisted(Iterable<FrameworkVersion> versions)
             throws FrameworkVersionNotFoundException {
         versions.forEach(v -> this.throwNotFoundExIfNotPersisted(v.getId()));
     }
 
     private void throwNotFoundExIfNotPersisted(Long id) throws FrameworkVersionNotFoundException {
         try {
-            JavaScriptFrameworkVersion one = versionRepository.getOne(id);
+            FrameworkVersion one = versionRepository.getOne(id);
             one.setId(id);
         } catch (EntityNotFoundException ex) {
             throw new FrameworkVersionNotFoundException(id);

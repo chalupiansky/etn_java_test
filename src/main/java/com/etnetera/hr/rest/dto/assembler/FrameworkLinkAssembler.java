@@ -1,7 +1,7 @@
 package com.etnetera.hr.rest.dto.assembler;
 
-import com.etnetera.hr.rest.dto.JavascriptFrameworkLinkDto;
-import com.etnetera.hr.data.entity.JavaScriptFramework;
+import com.etnetera.hr.rest.dto.FrameworkLinkDto;
+import com.etnetera.hr.data.entity.Framework;
 import com.etnetera.hr.rest.dto.LinkDTO;
 import com.etnetera.hr.util.CollectionUtil;
 
@@ -16,24 +16,24 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  */
 @Component
 @Scope(value = WebApplicationContext.SCOPE_REQUEST, proxyMode = ScopedProxyMode.TARGET_CLASS)
-public class JavaScriptFrameworkLinkAssembler {
+public class FrameworkLinkAssembler {
 
     private String resourcesURL = ServletUriComponentsBuilder.fromCurrentContextPath()
-                                                             .replacePath("/frameworks/")
+                                                             .replacePath("/languages/frameworks/")
                                                              .toUriString();
 
-    public LinkDTO writeSimpleLinkDto(JavaScriptFramework framework) {
+    public LinkDTO writeSimpleLinkDto(Framework framework) {
         return new LinkDTO(resourcesURL + framework.getId());
     }
 
-    public JavascriptFrameworkLinkDto writeDto(JavaScriptFramework framework) {
+    public FrameworkLinkDto writeDto(Framework framework) {
         String link = resourcesURL + framework.getId();
-        JavascriptFrameworkLinkDto dto = new JavascriptFrameworkLinkDto(link);
+        FrameworkLinkDto dto = new FrameworkLinkDto(link);
         dto.setFramework(framework.getName());
         return dto;
     }
 
-    public Iterable<JavascriptFrameworkLinkDto> writeDto(Iterable<JavaScriptFramework> versions) {
+    public Iterable<FrameworkLinkDto> writeDto(Iterable<Framework> versions) {
         return CollectionUtil.mapAll(versions, this::writeDto);
     }
 }

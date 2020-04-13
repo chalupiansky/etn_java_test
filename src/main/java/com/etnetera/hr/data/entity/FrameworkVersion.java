@@ -10,11 +10,11 @@ import java.util.Date;
 import java.util.Objects;
 
 /**
- * Simple data entity describing basic properties of every JavaScript framework name.
+ * Simple data entity describing basic properties of every framework version.
  */
 @Entity
 @Table(uniqueConstraints = {@UniqueConstraint(columnNames = {"name", "framework_fk"})})
-public class JavaScriptFrameworkVersion {
+public class FrameworkVersion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -34,8 +34,8 @@ public class JavaScriptFrameworkVersion {
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "framework_fk", updatable = false)
-    private JavaScriptFramework framework;
+    @JoinColumn(name = "framework_fk", updatable = false, nullable = false)
+    private Framework framework;
 
     public Long getId() {
         return id;
@@ -69,19 +69,19 @@ public class JavaScriptFrameworkVersion {
         this.hypeLevel = hypeLevel;
     }
 
-    public JavaScriptFramework getFramework() {
+    public Framework getFramework() {
         return framework;
     }
 
-    public void setFramework(JavaScriptFramework framework) {
+    public void setFramework(Framework framework) {
         this.framework = framework;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof JavaScriptFrameworkVersion)) return false;
-        JavaScriptFrameworkVersion that = (JavaScriptFrameworkVersion) o;
+        if (!(o instanceof FrameworkVersion)) return false;
+        FrameworkVersion that = (FrameworkVersion) o;
         return getHypeLevel() == that.getHypeLevel() &&
                 Objects.equals(getId(), that.getId()) &&
                 Objects.equals(getName(), that.getName()) &&

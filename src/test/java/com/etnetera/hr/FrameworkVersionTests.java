@@ -9,15 +9,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.etnetera.hr.data.entity.JavaScriptFramework;
-import com.etnetera.hr.data.entity.JavaScriptFrameworkVersion;
-import com.etnetera.hr.data.repository.JavaScriptFrameworkRepository;
-import com.etnetera.hr.data.repository.JavaScriptFrameworkVersionRepository;
+import com.etnetera.hr.data.entity.Framework;
+import com.etnetera.hr.data.entity.FrameworkVersion;
+import com.etnetera.hr.data.entity.ProgrammingLanguage;
+import com.etnetera.hr.data.repository.FrameworkRepository;
+import com.etnetera.hr.data.repository.FrameworkVersionRepository;
+import com.etnetera.hr.data.repository.ProgrammingLanguageRepository;
 import com.etnetera.hr.rest.controller.EtnRestController;
-import com.etnetera.hr.rest.controller.JavaScriptRestController;
-import com.etnetera.hr.rest.dto.JavaScriptFrameworkDto;
-import com.etnetera.hr.rest.dto.JavaScriptFrameworkVersionDto;
-import com.etnetera.hr.rest.dto.assembler.JavaScriptFrameworkVersionAssembler;
+import com.etnetera.hr.rest.controller.EntityRestController;
+import com.etnetera.hr.rest.dto.FrameworkDto;
+import com.etnetera.hr.rest.dto.FrameworkVersionDto;
+import com.etnetera.hr.rest.dto.assembler.FrameworkVersionAssembler;
 import com.etnetera.hr.rest.dto.container.InputContainer;
 import com.etnetera.hr.rest.exception.FrameworkNotFoundException;
 import com.etnetera.hr.rest.exception.FrameworkVersionNotFoundException;
@@ -51,33 +53,37 @@ import java.util.List;
 @SpringBootTest
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class JavaScriptFrameworkVersionTests {
+public class FrameworkVersionTests {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private JavaScriptFrameworkRepository repository;
+    private FrameworkRepository frameworkRepository;
 
     @Autowired
-    private JavaScriptFrameworkVersionRepository versionRepository;
+    private FrameworkVersionRepository versionRepository;
 
     @Autowired
-    private JavaScriptFrameworkVersionAssembler assembler;
+    private FrameworkVersionAssembler versionAssembler;
+
+    @Autowired
+    private ProgrammingLanguageRepository languageRepository;
 
     @Test
     public void addValidVersion() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareFrameworks();
-        JavaScriptFramework forFramework = frameworks.get(0);
-        List<JavaScriptFrameworkVersionDto> versionDto = prepareFrameworkVersionDto(forFramework);
+        ProgrammingLanguage language = prepareLanguage("JavaScript");
+        List<Framework> frameworks = prepareFrameworks(language);
+        Framework forFramework = frameworks.get(0);
+        List<FrameworkVersionDto> versionDto = prepareFrameworkVersionDto(forFramework);
 
-        ResultActions actions = mockMvc.perform(post("/frameworks/" + forFramework.getId().intValue() + "/versions")
+        ResultActions actions = mockMvc.perform(post("/languages/frameworks/" + forFramework.getId().intValue() + "/versions")
                                                         .content(mapToJson(wrapData(versionDto)))
                                                         .contentType(MediaType.APPLICATION_JSON))
                                        .andExpect(status().isCreated())
                                        .andExpect(jsonPath("$", hasSize(versionDto.size())));
         for (int i = 0; i < versionDto.size(); i++) {
-            actions.andExpect(jsonPath("$[" + i + "].link", endsWith("/frameworks/versions/" + (frameworks.size() + i + 1))))
+            actions.andExpect(jsonPath("$[" + i + "].link", endsWith("/languages/frameworks/versions/" + (frameworks.size() + i + 1 + 1))))
                    .andExpect(jsonPath("$[" + i + "].versionName", is(versionDto.get(i).getName())))
                    .andExpect(jsonPath("$[" + i + "].frameworkId", is(forFramework.getId().intValue())));
         }
@@ -85,12 +91,13 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void addDuplicatedVersion() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareFrameworks();
-        JavaScriptFramework forFramework = frameworks.get(0);
-        List<JavaScriptFrameworkVersionDto> versionDto = prepareFrameworkVersionDto(forFramework);
-        List<JavaScriptFrameworkVersionDto> duplicateVersionDto = Arrays.asList(versionDto.get(0), versionDto.get(0));
+        ProgrammingLanguage language = prepareLanguage("JavaScript");
+        List<Framework> frameworks = prepareFrameworks(language);
+        Framework forFramework = frameworks.get(0);
+        List<FrameworkVersionDto> versionDto = prepareFrameworkVersionDto(forFramework);
+        List<FrameworkVersionDto> duplicateVersionDto = Arrays.asList(versionDto.get(0), versionDto.get(0));
 
-        mockMvc.perform(post("/frameworks/" + forFramework.getId().intValue() + "/versions")
+        mockMvc.perform(post("/languages/frameworks/" + forFramework.getId().intValue() + "/versions")
                                 .content(mapToJson(wrapData(duplicateVersionDto)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isConflict())
@@ -99,76 +106,82 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void addVersionsToNonExistentFramework() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareFrameworks();
-        JavaScriptFramework forFramework = frameworks.get(0);
-        List<JavaScriptFrameworkVersionDto> versionDto = prepareFrameworkVersionDto(forFramework);
+        ProgrammingLanguage language = prepareLanguage("JavaScript");
+        List<Framework> frameworks = prepareFrameworks(language);
+        Framework forFramework = frameworks.get(0);
+        List<FrameworkVersionDto> versionDto = prepareFrameworkVersionDto(forFramework);
         int nonExistentFrameworkId = 1000;
 
-        mockMvc.perform(post("/frameworks/" + nonExistentFrameworkId + "/versions")
+        mockMvc.perform(post("/languages/frameworks/" + nonExistentFrameworkId + "/versions")
                                 .content(mapToJson(wrapData(versionDto)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message", is(JavaScriptRestController.NO_SUCH_ENTITY_MESSAGE)))
+               .andExpect(jsonPath("$.message", is(EntityRestController.NO_SUCH_ENTITY_MESSAGE)))
                .andExpect(jsonPath("$.details", is(FrameworkNotFoundException.MESSAGE + nonExistentFrameworkId)));
     }
 
     @Test
     public void addVersionsWithInvalidHypeLevel() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareFrameworks();
-        JavaScriptFramework framework = frameworks.get(0);
+        ProgrammingLanguage language = prepareLanguage("JavaScript");
+        List<Framework> frameworks = prepareFrameworks(language);
+        Framework framework = frameworks.get(0);
 
-        List<JavaScriptFrameworkVersionDto> versionDto = prepareFrameworkVersionDto(framework);
+        List<FrameworkVersionDto> versionDto = prepareFrameworkVersionDto(framework);
         int invalidHypeLevel = 101;
         versionDto.get(0).setHypeLevel(invalidHypeLevel);
 
-        mockMvc.perform(post("/frameworks/" + framework.getId().intValue() + "/versions")
+        mockMvc.perform(post("/languages/frameworks/" + framework.getId().intValue() + "/versions")
                                 .content(mapToJson(wrapData(versionDto)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
                .andExpect(jsonPath("$.errors[0].message", is("Max")))
-               .andExpect(jsonPath("$.errors[0].details", is(JavaScriptFrameworkVersionDto.HYPE_LEVEL_MAX_CONST_MESSAGE)))
+               .andExpect(jsonPath("$.errors[0].details", is(FrameworkVersionDto.HYPE_LEVEL_MAX_CONST_MESSAGE)))
                .andExpect(jsonPath("$.errors[0].property", is("inputs[0].hypeLevel")))
                .andExpect(jsonPath("$.errors[0].invalidValue", is(invalidHypeLevel)));
     }
 
     @Test
     public void addVersionsWithInvalidVersion() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareFrameworks();
-        JavaScriptFramework framework = frameworks.get(0);
+        ProgrammingLanguage language = prepareLanguage("JavaScript");
+        List<Framework> frameworks = prepareFrameworks(language);
+        Framework framework = frameworks.get(0);
 
-        List<JavaScriptFrameworkVersionDto> versionDto = prepareFrameworkVersionDto(framework);
+        List<FrameworkVersionDto> versionDto = prepareFrameworkVersionDto(framework);
         String invalidVersion = "TooLongVersionName";
         versionDto.get(0).setName(invalidVersion);
 
-        mockMvc.perform(post("/frameworks/" + framework.getId().intValue() + "/versions")
+        mockMvc.perform(post("/languages/frameworks/" + framework.getId().intValue() + "/versions")
                                 .content(mapToJson(wrapData(versionDto)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
                .andExpect(jsonPath("$.errors[0].message", is("Size")))
-               .andExpect(jsonPath("$.errors[0].details", is(JavaScriptFrameworkVersionDto.NAME_MAX_LENGTH_MESSAGE)))
+               .andExpect(jsonPath("$.errors[0].details", is(FrameworkVersionDto.NAME_MAX_LENGTH_MESSAGE)))
                .andExpect(jsonPath("$.errors[0].property", is("inputs[0].name")))
                .andExpect(jsonPath("$.errors[0].invalidValue", is(invalidVersion)));
     }
 
     @Test
     public void addInvalidVersionsWithoutRequestBody() throws Exception {
-        prepareFrameworks();
-        mockMvc.perform(post("/frameworks/" + 1 + "/versions"))
+        ProgrammingLanguage language = prepareLanguage("JavaScript");
+        List<Framework> frameworks = prepareFrameworks(language);
+        mockMvc.perform(post("/languages/frameworks/"  + frameworks.get(0).getId().intValue() + "/versions"))
                .andExpect(status().isBadRequest());
     }
 
     @Test
     public void addInvalidVersionWithoutRequestBody() throws Exception {
-        prepareFrameworks();
-        mockMvc.perform(post("/frameworks/" + 1 + "/versions"))
+        ProgrammingLanguage language = prepareLanguage("JavaScript");
+        List<Framework> frameworks = prepareFrameworks(language);
+        mockMvc.perform(post("/languages/frameworks/" + frameworks.get(0).getId().intValue() + "/versions"))
                .andExpect(status().isBadRequest());
     }
 
     @Test
     public void addInvalidVersionWithEmptyRequestBody() throws Exception {
-        prepareFrameworks();
-        List<JavaScriptFrameworkVersionDto> emptyList = new ArrayList<>();
-        mockMvc.perform(post("/frameworks/" + 1 + "/versions")
+        ProgrammingLanguage language = prepareLanguage("JavaScript");
+        List<Framework> frameworks = prepareFrameworks(language);
+        List<FrameworkVersionDto> emptyList = new ArrayList<>();
+        mockMvc.perform(post("/languages/frameworks/" + frameworks.get(0).getId().intValue() + "/versions")
                                 .content(mapToJson(wrapData(emptyList)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
@@ -181,9 +194,9 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void getAllVersions() throws Exception {
-        List<JavaScriptFrameworkVersion> preparedVersions = prepareFrameworkVersions();
+        List<FrameworkVersion> preparedVersions = prepareFrameworkVersions();
 
-        ResultActions actions = mockMvc.perform(get("/frameworks/versions"))
+        ResultActions actions = mockMvc.perform(get("/languages/frameworks/versions"))
                                        .andExpect(status().isOk())
                                        .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                        .andExpect(jsonPath("$", hasSize(preparedVersions.size())));
@@ -197,12 +210,12 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void getVersionsByExistingFramework() throws Exception {
-        List<JavaScriptFrameworkVersion> preparedVersions = prepareFrameworkVersions();
-        JavaScriptFramework forFramework = preparedVersions.get(0).getFramework();
-        List<JavaScriptFrameworkVersion> expectedVersions = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
+        List<FrameworkVersion> preparedVersions = prepareFrameworkVersions();
+        Framework forFramework = preparedVersions.get(0).getFramework();
+        List<FrameworkVersion> expectedVersions = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
         int frameworkId = forFramework.getId().intValue();
 
-        ResultActions actions = mockMvc.perform(get("/frameworks/" + frameworkId + "/versions"))
+        ResultActions actions = mockMvc.perform(get("/languages/frameworks/" + frameworkId + "/versions"))
                                        .andExpect(status().isOk())
                                        .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                        .andExpect(jsonPath("$", hasSize(expectedVersions.size())));
@@ -216,24 +229,25 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void getVersionsByNonExistentFramework() throws Exception {
-        List<JavaScriptFramework> frameworks = prepareFrameworks();
-        int nonExistentId = frameworks.size() + 1;
-        mockMvc.perform(get("/frameworks/" + nonExistentId + "/versions"))
+        ProgrammingLanguage language = prepareLanguage("JavaScript");
+        List<Framework> frameworks = prepareFrameworks(language);
+        int nonExistentId = frameworks.size() + 100;
+        mockMvc.perform(get("/languages/frameworks/" + nonExistentId + "/versions"))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message", is(JavaScriptRestController.NO_SUCH_ENTITY_MESSAGE)))
+               .andExpect(jsonPath("$.message", is(EntityRestController.NO_SUCH_ENTITY_MESSAGE)))
                .andExpect(jsonPath("$.details", is(FrameworkNotFoundException.MESSAGE + nonExistentId)));
     }
 
     @Test
     public void getVersionsByPageAndLimitParams() throws Exception {
-        List<JavaScriptFrameworkVersion> preparedVersions = prepareFrameworkVersions();
-        JavaScriptFramework forFramework = preparedVersions.get(0).getFramework();
-        List<JavaScriptFrameworkVersion> versionsOfFramework = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
+        List<FrameworkVersion> preparedVersions = prepareFrameworkVersions();
+        Framework forFramework = preparedVersions.get(0).getFramework();
+        List<FrameworkVersion> versionsOfFramework = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
 
-        List<JavaScriptFrameworkVersion> firstPageData = versionsOfFramework.subList(0, 2);
-        List<JavaScriptFrameworkVersion> secondPageData = versionsOfFramework.subList(2, 4);
+        List<FrameworkVersion> firstPageData = versionsOfFramework.subList(0, 2);
+        List<FrameworkVersion> secondPageData = versionsOfFramework.subList(2, 4);
 
-        ResultActions actions1 = mockMvc.perform(get("/frameworks/" + forFramework.getId().intValue() + "/versions?page=0&limit=2"))
+        ResultActions actions1 = mockMvc.perform(get("/languages/frameworks/" + forFramework.getId().intValue() + "/versions?page=0&limit=2"))
                                         .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                         .andExpect(jsonPath("$", hasSize(firstPageData.size())));
         for (int i = 0; i < firstPageData.size(); i++) {
@@ -243,7 +257,7 @@ public class JavaScriptFrameworkVersionTests {
                     .andExpect(jsonPath("$[" + i + "].frameworkId", is(forFramework.getId().intValue())));
         }
 
-        ResultActions actions2 = mockMvc.perform(get("/frameworks/" + forFramework.getId().intValue() + "/versions?page=1&limit=2"))
+        ResultActions actions2 = mockMvc.perform(get("/languages/frameworks/" + forFramework.getId().intValue() + "/versions?page=1&limit=2"))
                                         .andExpect(status().isOk()).andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                         .andExpect(jsonPath("$", hasSize(secondPageData.size())));
 
@@ -259,7 +273,7 @@ public class JavaScriptFrameworkVersionTests {
     public void getFrameworksByWrongPageParam() throws Exception {
         prepareFrameworkVersions();
         int wrongPageParam = -1;
-        mockMvc.perform(get("/frameworks/" + 1 + "/versions?page=" + wrongPageParam + "&limit=2"))
+        mockMvc.perform(get("/languages/frameworks/" + 2 + "/versions?page=" + wrongPageParam + "&limit=2"))
                .andExpect(status().isBadRequest()).andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                .andExpect(jsonPath("$.message", is(EtnRestController.ILLEGAL_ARGUMENT_MESSAGE)))
                .andExpect(jsonPath("$.details", is("Page index must not be less than zero!")));
@@ -267,14 +281,14 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void getVersionsCount() throws Exception {
-        MvcResult resultBeforePersist = mockMvc.perform(get("/frameworks/versions/count"))
+        MvcResult resultBeforePersist = mockMvc.perform(get("/languages/frameworks/versions/count"))
                                                .andExpect(status().isOk())
                                                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                                .andReturn();
         Assert.assertEquals(String.valueOf(0), resultBeforePersist.getResponse().getContentAsString());
 
-        List<JavaScriptFrameworkVersion> versions = prepareFrameworkVersions();
-        MvcResult resultAfterPersist = mockMvc.perform(get("/frameworks/versions/count"))
+        List<FrameworkVersion> versions = prepareFrameworkVersions();
+        MvcResult resultAfterPersist = mockMvc.perform(get("/languages/frameworks/versions/count"))
                                               .andExpect(status().isOk())
                                               .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                               .andReturn();
@@ -283,11 +297,11 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void getVersionsCountOfFramework() throws Exception {
-        List<JavaScriptFrameworkVersion> versions = prepareFrameworkVersions();
-        JavaScriptFramework forFramework = versions.get(0).getFramework();
-        List<JavaScriptFrameworkVersion> frameworkVersions = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
+        List<FrameworkVersion> versions = prepareFrameworkVersions();
+        Framework forFramework = versions.get(0).getFramework();
+        List<FrameworkVersion> frameworkVersions = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
 
-        MvcResult resultAfterPersist = mockMvc.perform(get("/frameworks/" + forFramework.getId().intValue() + "/versions/count"))
+        MvcResult resultAfterPersist = mockMvc.perform(get("/languages/frameworks/" + forFramework.getId().intValue() + "/versions/count"))
                                               .andExpect(status().isOk())
                                               .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                                               .andReturn();
@@ -297,18 +311,18 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void updateVersions() throws Exception {
-        List<JavaScriptFrameworkVersion> preparedVersions = prepareFrameworkVersions();
-        JavaScriptFramework forFramework = preparedVersions.get(0).getFramework();
-        List<JavaScriptFrameworkVersion> versionsOfFramework = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
-        List<JavaScriptFrameworkVersionDto> versionOfFrameworkDto = CollectionUtil.mapToList(assembler.writeDto(versionsOfFramework));
+        List<FrameworkVersion> preparedVersions = prepareFrameworkVersions();
+        Framework forFramework = preparedVersions.get(0).getFramework();
+        List<FrameworkVersion> versionsOfFramework = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
+        List<FrameworkVersionDto> versionOfFrameworkDto = CollectionUtil.mapToList(versionAssembler.writeDto(versionsOfFramework));
         versionOfFrameworkDto.forEach(dto -> dto.setFrameworkId(forFramework.getId()));
 
-        mockMvc.perform(put("/frameworks/versions")
+        mockMvc.perform(put("/languages/frameworks/versions")
                                 .content(mapToJson(wrapData(versionOfFrameworkDto)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isOk());
 
-        List<JavaScriptFrameworkVersion> versionsFromDB = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
+        List<FrameworkVersion> versionsFromDB = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
 
         for (int i = 0; i < versionsFromDB.size(); i++) {
             Assert.assertEquals(versionOfFrameworkDto.get(i).getName(), versionsFromDB.get(i).getName());
@@ -318,10 +332,10 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void updateVersionsWithoutId() throws Exception {
-        List<JavaScriptFrameworkVersion> preparedVersions = prepareFrameworkVersions();
+        List<FrameworkVersion> preparedVersions = prepareFrameworkVersions();
         preparedVersions.get(0).setId(null);
 
-        mockMvc.perform(put("/frameworks/versions")
+        mockMvc.perform(put("/languages/frameworks/versions")
                                 .content(mapToJson(wrapData(preparedVersions)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
@@ -331,33 +345,33 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void updateOfNonExistentVersion() throws Exception {
-        List<JavaScriptFrameworkVersion> preparedVersions = prepareFrameworkVersions();
-        JavaScriptFramework forFramework = preparedVersions.get(0).getFramework();
-        List<JavaScriptFrameworkVersion> versionsOfFramework = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
-        List<JavaScriptFrameworkVersionDto> versionOfFrameworkDto = CollectionUtil.mapToList(assembler.writeDto(versionsOfFramework));
+        List<FrameworkVersion> preparedVersions = prepareFrameworkVersions();
+        Framework forFramework = preparedVersions.get(0).getFramework();
+        List<FrameworkVersion> versionsOfFramework = CollectionUtil.mapToList(versionRepository.findByFramework(forFramework));
+        List<FrameworkVersionDto> versionOfFrameworkDto = CollectionUtil.mapToList(versionAssembler.writeDto(versionsOfFramework));
         versionOfFrameworkDto.forEach(dto -> dto.setFrameworkId(forFramework.getId()));
         long id = 100;
         versionOfFrameworkDto.get(0).setId(id);
 
-        mockMvc.perform(put("/frameworks/versions")
+        mockMvc.perform(put("/languages/frameworks/versions")
                                 .content(mapToJson(wrapData(versionOfFrameworkDto)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message", is(JavaScriptRestController.NO_SUCH_ENTITY_MESSAGE)))
+               .andExpect(jsonPath("$.message", is(EntityRestController.NO_SUCH_ENTITY_MESSAGE)))
                .andExpect(jsonPath("$.details", is(FrameworkVersionNotFoundException.MESSAGE + id)));
     }
 
     @Test
     public void updateVersionsWithInvalidContent() throws Exception {
-        List<JavaScriptFrameworkVersion> preparedVersions = prepareFrameworkVersions();
+        List<FrameworkVersion> preparedVersions = prepareFrameworkVersions();
         String invalidVersion = "TooLongVersionName";
         preparedVersions.get(0).setName(invalidVersion);
-        mockMvc.perform(put("/frameworks/versions")
+        mockMvc.perform(put("/languages/frameworks/versions")
                                 .content(mapToJson(wrapData(preparedVersions)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
                .andExpect(jsonPath("$.errors[0].message", is("Size")))
-               .andExpect(jsonPath("$.errors[0].details", is(JavaScriptFrameworkVersionDto.NAME_MAX_LENGTH_MESSAGE)))
+               .andExpect(jsonPath("$.errors[0].details", is(FrameworkVersionDto.NAME_MAX_LENGTH_MESSAGE)))
                .andExpect(jsonPath("$.errors[0].property", is("inputs[0].name")))
                .andExpect(jsonPath("$.errors[0].invalidValue", is(invalidVersion)));
     }
@@ -365,15 +379,15 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void updateVersionsWithoutRequestBody() throws Exception {
-        mockMvc.perform(put("/frameworks/versions")
+        mockMvc.perform(put("/languages/frameworks/versions")
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest());
     }
 
     @Test
     public void updateVersionsWithEmptyRequestBody() throws Exception {
-        List<JavaScriptFrameworkDto> emptyList = new ArrayList<>();
-        mockMvc.perform(put("/frameworks/versions")
+        List<FrameworkDto> emptyList = new ArrayList<>();
+        mockMvc.perform(put("/languages/frameworks/versions")
                                 .content(mapToJson(wrapData(emptyList)))
                                 .contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isBadRequest())
@@ -386,12 +400,12 @@ public class JavaScriptFrameworkVersionTests {
 
     @Test
     public void deleteExistingVersion() throws Exception {
-        List<JavaScriptFrameworkVersion> preparedVersions = prepareFrameworkVersions();
+        List<FrameworkVersion> preparedVersions = prepareFrameworkVersions();
         Long id = preparedVersions.get(0).getId();
-        mockMvc.perform(delete("/frameworks/versions/" + id))
+        mockMvc.perform(delete("/languages/frameworks/versions/" + id))
                .andExpect(status().isOk());
 
-        List<JavaScriptFrameworkVersion> updatedVersions = CollectionUtil.mapToList(versionRepository.findAll());
+        List<FrameworkVersion> updatedVersions = CollectionUtil.mapToList(versionRepository.findAll());
         boolean versionFound = updatedVersions.stream().anyMatch(f -> f.getId().equals(id));
 
         Assert.assertFalse(versionFound);
@@ -400,70 +414,83 @@ public class JavaScriptFrameworkVersionTests {
     @Test
     public void deleteNonExistentVersion() throws Exception {
         int nonExistentId = 100;
-        mockMvc.perform(delete("/frameworks/versions/" + nonExistentId))
+        mockMvc.perform(delete("/languages/frameworks/versions/" + nonExistentId))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message", is(JavaScriptRestController.NO_SUCH_ENTITY_MESSAGE)))
+               .andExpect(jsonPath("$.message", is(EntityRestController.NO_SUCH_ENTITY_MESSAGE)))
                .andExpect(jsonPath("$.details", is(FrameworkVersionNotFoundException.MESSAGE + nonExistentId)));
+    }
+    
+    private ProgrammingLanguage prepareLanguage(String name) {
+        ProgrammingLanguage javascript = new ProgrammingLanguage();
+        javascript.setName(name);
+        languageRepository.save(javascript);
+        return javascript;
     }
 
 
-    private List<JavaScriptFramework> prepareFrameworks() {
-        List<JavaScriptFramework> frameworks = new ArrayList<>();
-        JavaScriptFramework react = new JavaScriptFramework();
+    private List<Framework> prepareFrameworks(ProgrammingLanguage language) {
+        List<Framework> frameworks = new ArrayList<>();
+        Framework react = new Framework();
         react.setName("React");
-        JavaScriptFramework vue = new JavaScriptFramework();
+        react.setLanguage(language);
+        Framework vue = new Framework();
         vue.setName("Vue.js");
-        JavaScriptFramework angular = new JavaScriptFramework();
+        vue.setLanguage(language);
+        Framework angular = new Framework();
         angular.setName("Angular");
-        JavaScriptFramework node = new JavaScriptFramework();
+        angular.setLanguage(language);
+        Framework node = new Framework();
         node.setName("Node.js");
-        JavaScriptFramework backbone = new JavaScriptFramework();
+        node.setLanguage(language);
+        Framework backbone = new Framework();
         backbone.setName("Backbone.js");
+        backbone.setLanguage(language);
         frameworks.add(react);
         frameworks.add(vue);
         frameworks.add(angular);
         frameworks.add(node);
         frameworks.add(backbone);
-        repository.saveAll(frameworks);
+        frameworkRepository.saveAll(frameworks);
         return frameworks;
     }
 
 
-    private List<JavaScriptFrameworkVersion> prepareFrameworkVersions() {
-        List<JavaScriptFramework> frameworks = prepareFrameworks();
-        List<JavaScriptFrameworkVersion> versions = new ArrayList<>();
+    private List<FrameworkVersion> prepareFrameworkVersions() {
+        ProgrammingLanguage language = prepareLanguage("JavaScripy");
+        List<Framework> frameworks = prepareFrameworks(language);
+        List<FrameworkVersion> versions = new ArrayList<>();
 
-        JavaScriptFrameworkVersion version1 = new JavaScriptFrameworkVersion();
+        FrameworkVersion version1 = new FrameworkVersion();
         version1.setFramework(frameworks.get(0));
         version1.setName("1.1");
         version1.setHypeLevel(10);
         version1.setDeprecationDate(new Date());
 
-        JavaScriptFrameworkVersion version2 = new JavaScriptFrameworkVersion();
+        FrameworkVersion version2 = new FrameworkVersion();
         version2.setFramework(frameworks.get(0));
         version2.setName("1.2");
         version2.setHypeLevel(15);
         version2.setDeprecationDate(new Date());
 
-        JavaScriptFrameworkVersion version3 = new JavaScriptFrameworkVersion();
+        FrameworkVersion version3 = new FrameworkVersion();
         version3.setFramework(frameworks.get(0));
         version3.setName("1.3");
         version3.setHypeLevel(19);
         version3.setDeprecationDate(new Date());
 
-        JavaScriptFrameworkVersion version4 = new JavaScriptFrameworkVersion();
+        FrameworkVersion version4 = new FrameworkVersion();
         version4.setFramework(frameworks.get(0));
         version4.setName("1.4");
         version4.setHypeLevel(25);
         version4.setDeprecationDate(new Date());
 
-        JavaScriptFrameworkVersion version5 = new JavaScriptFrameworkVersion();
+        FrameworkVersion version5 = new FrameworkVersion();
         version5.setFramework(frameworks.get(1));
         version5.setName("1.1");
         version5.setHypeLevel(13);
         version5.setDeprecationDate(new Date());
 
-        JavaScriptFrameworkVersion version6 = new JavaScriptFrameworkVersion();
+        FrameworkVersion version6 = new FrameworkVersion();
         version6.setFramework(frameworks.get(2));
         version6.setName("1.1");
         version6.setHypeLevel(73);
@@ -481,29 +508,29 @@ public class JavaScriptFrameworkVersionTests {
         return versions;
     }
 
-    private List<JavaScriptFrameworkVersionDto> prepareFrameworkVersionDto(JavaScriptFramework framework) {
-        JavaScriptFrameworkVersionDto versionDto1 = new JavaScriptFrameworkVersionDto();
+    private List<FrameworkVersionDto> prepareFrameworkVersionDto(Framework framework) {
+        FrameworkVersionDto versionDto1 = new FrameworkVersionDto();
         versionDto1.setDeprecationDate(new Date());
         versionDto1.setHypeLevel(75);
         versionDto1.setName("1.1");
         versionDto1.setFrameworkId(framework.getId());
         versionDto1.setFramework(framework);
 
-        JavaScriptFrameworkVersionDto versionDto2 = new JavaScriptFrameworkVersionDto();
+        FrameworkVersionDto versionDto2 = new FrameworkVersionDto();
         versionDto2.setDeprecationDate(new Date());
         versionDto2.setHypeLevel(64);
         versionDto2.setName("1.2");
         versionDto2.setFrameworkId(framework.getId());
         versionDto2.setFramework(framework);
 
-        JavaScriptFrameworkVersionDto versionDto3 = new JavaScriptFrameworkVersionDto();
+        FrameworkVersionDto versionDto3 = new FrameworkVersionDto();
         versionDto3.setDeprecationDate(new Date());
         versionDto3.setHypeLevel(17);
         versionDto3.setName("1.3");
         versionDto3.setFrameworkId(framework.getId());
         versionDto3.setFramework(framework);
 
-        List<JavaScriptFrameworkVersionDto> versionDto = new ArrayList<>();
+        List<FrameworkVersionDto> versionDto = new ArrayList<>();
         versionDto.add(versionDto1);
         versionDto.add(versionDto2);
         versionDto.add(versionDto3);
